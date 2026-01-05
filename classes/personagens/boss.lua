@@ -1,7 +1,20 @@
+--[[
+    Classe Boss - Chefe de Fase
+    Representa os boss de cada fase
+    Possui ataques especiais, padrões de movimento e múltiplos estados
+]]--
+
 Boss = Classe:extend()
 
+--[[
+    Construtor da classe Boss
+    @param nome_inimigo: Nome do arquivo de sprite
+    @param tipo_boss: Tabela com atributos do boss (vida, dano, velocidade, etc)
+]]--
 function Boss:new(nome_inimigo, tipo_boss)
     self.nome = 'boss'
+
+    -- SPRITE E ANIMAÇÕES
     self.img = love.graphics.newImage("/materials/chars/" .. nome_inimigo .. ".png")
     self.largura_animacao = self.img:getWidth()
     self.altura_animacao = self.img:getHeight()
@@ -12,49 +25,57 @@ function Boss:new(nome_inimigo, tipo_boss)
     self.anim_boss = anim.newAnimation(g_inimigos('1-4', tipo_boss.op), 0.15)
     self.anim_boss_parado = anim.newAnimation(g_inimigos('1-1', tipo_boss.op), 0.15)
 
-    --Status inimigo
-    self.posicao = tipo_boss.posicao
-    self.dano = tipo_boss.dano
-    self.dano_tiro = tipo_boss.dano_tiro
-    self.vida = tipo_boss.vida
-    self.raio = tipo_boss.raio
-    self.raio_deteccao = tipo_boss.raio_deteccao
-    self.vel = tipo_boss.vel
-    self.vel_tiro = tipo_boss.vel_tiro
+    -- ATRIBUTOS DE COMBATE
+    self.posicao = tipo_boss.posicao            -- Posição inicial
+    self.dano = tipo_boss.dano                  -- Dano corpo a corpo
+    self.dano_tiro = tipo_boss.dano_tiro        -- Dano dos projéteis
+    self.vida = tipo_boss.vida                  -- Pontos de vida
+    self.raio = tipo_boss.raio                  -- Raio de colisão
+    self.raio_deteccao = tipo_boss.raio_deteccao -- Alcance de detecção
+    self.vel = tipo_boss.vel                    -- Velocidade de movimento
+    self.vel_tiro = tipo_boss.vel_tiro          -- Velocidade dos projéteis
 
-    self.estado_mov = 'descendo'
-    self.estado_ataque = 'normal'
-    self.direcao_olhando = 'direita'
-    self.delay_ataque_tiro = 0 -- tempo entre os ataques de tiro
-    self.delay_ataque_avanco = 0 -- tempo para ataque de avanço
-    self.tempo_ataque = 2.25 -- tempo alternar modos de ataques
-    self.tiros = {}
-    self.posicao_heroi = heroi.posicao
-    self.delay_dano = 0 -- tempo de espera para dar dano no heroi
-    self.heroi_visivel = false
+    -- ESTADOS DO BOSS
+    self.estado_mov = 'descendo'                -- Estado de movimento (descendo/subindo)
+    self.estado_ataque = 'normal'               -- Modo de ataque (normal/tiro/avanco)
+    self.direcao_olhando = 'direita'            -- Direção que o boss está olhando
+
+    -- SISTEMA DE ATAQUES
+    self.delay_ataque_tiro = 0                  -- Cooldown entre ataques à distância
+    self.delay_ataque_avanco = 0                -- Cooldown para ataque de avanço
+    self.tempo_ataque = 2.25                    -- Timer para alternar modos de ataque
+    self.tiros = {}                             -- Array de projéteis ativos
+    self.posicao_heroi = heroi.posicao          -- Posição alvo do herói
+    self.delay_dano = 0                         -- Cooldown de dano corpo a corpo
+    self.heroi_visivel = false                  -- Se o herói foi detectado
 end
 
+--[[
+    Atualiza o estado e comportamento do boss
+    Gerencia padrões de ataque e movimento
+    @param dt: Delta time
+]]--
 function Boss:update(dt)
     self.anim_boss:update(dt)
     self.anim_boss_parado:update(dt)
 
-    -- Verifica se o heroi está atirando e se o boss escutou o tiro
+    -- SISTEMA DE DETECÇÃO - Herói detectado por tiro ou visão
     local escutou_tomou_tiro = verifica_colisao(heroi.posicao, heroi.raio_tiro, self.posicao, self.raio_deteccao)
     local viu_heroi = verifica_colisao(heroi.posicao, heroi.raio, self.posicao, self.raio_deteccao)
     if (heroi.atirando and escutou_tomou_tiro and heroi.posicao.x > 1600) or viu_heroi then
         if not self.heroi_visivel then
             self.direcao_olhando = 'esquerda'
         end
-        self.heroi_visivel = true 
+        self.heroi_visivel = true
     end
 
-    -- Atualiza os tempos de recarga se o boss viu o heroi
+    -- SISTEMA DE COOLDOWNS - Atualiza timers apenas quando herói está visível
     if self.heroi_visivel then
         self.delay_ataque_avanco = self.delay_ataque_avanco + dt
         self.delay_ataque_tiro = self.delay_ataque_tiro + dt
         self.tempo_ataque = self.tempo_ataque + dt
     end
-    
+
     -- Tempo para dar dano novamente no heroi
     if heroi.estado == 'colidindo' then
         self.delay_dano = self.delay_dano + dt
@@ -113,7 +134,7 @@ function Boss:update(dt)
             self.estado_mov = 'descendo'
         end
     end
-    
+
     -- Atualiza a posição do heroi de acordo com o estado
     if self.estado_mov == 'descendo' and self.estado_ataque == 'tiro' then
         self.posicao = self.posicao + Vector(0, 0.80)
@@ -166,11 +187,11 @@ function Boss:draw()
         elseif self.direcao_olhando == 'direita' then -- Boss olhando para direita
             love.graphics.line(self.posicao.x/escala - 40, self.posicao.y/escala, 2400/escala, self.posicao_heroi.y/escala)
         end
-        
+
         love.graphics.setLineWidth(1)
         love.graphics.setColor(1, 1, 1)
     end
-    
+
     -- Desenha o Boss
     if self.direcao_olhando == 'direita' then
         if self.estado_ataque == 'carregar avanco' then
