@@ -16,22 +16,20 @@ local botoes = {}
 --local font = nil
 
 function GameOver:new()
-    id_jogador = 1
-    font = love.graphics.setNewFont("materials/fonts/Melted-Monster.ttf", 40)
+    font = Recursos.usarFonte("materials/fonts/Melted-Monster.ttf", 40)
     opc = 0
 
     table.insert(botoes, newButton(
         "Jogar Novamente",
         function()
-            cena_atual = "jogo"
-            jogo:new()
+            jogo:iniciar()
         end
     ))
 
     table.insert(botoes, newButton(
         "Menu Inicial",
         function()
-            cena_atual = "menu_inicial"
+            jogo:voltar()
         end
     ))
 
@@ -47,7 +45,17 @@ function GameOver:update(dt)
     
 end
 
+function GameOver:ativar()
+    local pressionado = love.mouse.isDown(1)
+    for _, botao in ipairs(botoes) do botao.now = pressionado end
+end
+
 function GameOver:draw()
+    local vitoria = jogo.resultado == 'vitoria'
+    love.graphics.printf(vitoria and 'Campanha concluída' or 'Fim de jogo', 0, 75, LARGURA_TELA, 'center')
+    if vitoria then
+        love.graphics.printf(string.format('Tempo %.2f s', jogo.tempo), 0, 130, LARGURA_TELA, 'center')
+    end
     local larg_botao = 400
     local margem = 20
 

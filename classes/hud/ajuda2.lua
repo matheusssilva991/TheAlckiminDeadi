@@ -147,12 +147,12 @@ function Ajuda2:draw()
     local margem = 40
 
     for i, txt in ipairs(txts) do
-        local font = love.graphics.setNewFont(25)
+        local font = Recursos.usarFonte(25)
         love.graphics.setColor(0, 0, 0)
         love.graphics.printf(txt, bx, altTxt, 700)
         love.graphics.setColor(1, 1, 1)
         love.graphics.printf(txt, bx+2, altTxt+2, 700)
-        local font = love.graphics.setNewFont("materials/fonts/Melted-Monster.ttf", 40)
+        local font = Recursos.usarFonte("materials/fonts/Melted-Monster.ttf", 40)
         altTxt = altTxt + margem*2
     end
 

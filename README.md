@@ -24,7 +24,7 @@
 - 🎨 **Sprites e Animações** personalizadas
 - 🎭 **Sistema de Personagens** com herói e inimigos
 - 👾 **Boss Battles** desafiadoras
-- 📊 **Sistema de HUD** com vida, pontuação e tempo
+- 📊 **Sistema de HUD** com vida e tempo
 - ⏸️ **Menu de Pausa** funcional
 - 🌍 **3 Fases** com dificuldade progressiva
 - 🏆 **Sistema de Ranking** com registro de tempos
@@ -38,58 +38,63 @@
 
 ### Controles
 
-| Tecla | Ação |
+| Entrada | Ação |
 |-------|------|
-| `W` / `↑` | Mover para cima |
-| `S` / `↓` | Mover para baixo |
-| `A` / `←` | Mover para esquerda |
-| `D` / `→` | Mover para direita |
-| `Mouse` | Mirar |
-| `Clique Esquerdo` | Atirar |
-| `ESC` | Pausar jogo |
+| `W` / `A` / `S` / `D` | Andar para cima, esquerda, baixo e direita |
+| Clique esquerdo | Atirar na direção em que a personagem está olhando, enquanto estiver parada |
+| `Espaço` | Pular a introdução da fase |
+| `Esc` | Pausar ou retomar a partida |
 
-### Objetivo
-
-Avance através das 3 fases eliminando inimigos e derrotando os chefes. Complete o jogo no menor tempo possível para alcançar o topo do ranking!
+Derrote o chefe para avançar de fase. A vida da personagem volta ao máximo entre fases.
+O ranking local guarda os dez melhores tempos de campanhas concluídas e conta apenas o tempo jogável.
 
 ---
 
 ## 🚀 Instalação
 
-### Pré-requisitos
+### Jogar a partir dos pacotes
 
-- [LÖVE2D](https://love2d.org/) (versão 11.x ou superior)
-- Sistema Operacional: Windows, macOS ou Linux
+- **Linux x86_64** — Torne o AppImage executável e rode o arquivo.
 
-### Executando o Jogo
+  ```bash
+  chmod +x TheAlckminDeadi-linux-x86_64.AppImage
+  ./TheAlckminDeadi-linux-x86_64.AppImage
+  ```
 
-#### Opção 1: Através do executável (Windows)
+  Se o sistema estiver sem FUSE, execute `./TheAlckminDeadi-linux-x86_64.AppImage --appimage-extract-and-run`.
 
-```bash
-# Navegue até a pasta executavel
-cd executavel
-# Execute o arquivo jogo.love
-```
+- **Windows x64** — Extraia todo o conteúdo de `TheAlckminDeadi-windows-x64.zip` e abra `TheAlckminDeadi.exe` na pasta que contém as DLLs.
 
-#### Opção 2: Através do código fonte
+- **Pacote portátil** — Com [LÖVE 11.5](https://github.com/love2d/love/releases/tag/11.5) instalado, execute `love TheAlckminDeadi.love`.
 
-```bash
-# Clone o repositório
-git clone https://github.com/matheusssilva991/projeto-final-tac1-jogos.git
+### Jogar a partir do código-fonte
 
-# Navegue até a pasta do projeto
-cd projeto-final-tac1-jogos
+Com o LÖVE 11.5 instalado, abra o terminal na raiz do checkout e execute `love .`.
 
-# Execute com LÖVE
-love .
-```
+### Gerar os pacotes
 
-#### Opção 3: Gerando executável Windows
+No Linux x86_64, com Bash, Python 3, curl e coreutils, execute a partir da raiz do checkout.
 
 ```bash
-# Na pasta executavel, execute
-gera exe.bat
+bash executavel/empacotar.sh
+cd dist
+sha256sum -c SHA256SUMS
 ```
+
+O script usa o código e os recursos do checkout e verifica os downloads dos runtimes e ferramentas por SHA-256.
+A pasta `dist/` recebe o AppImage, o ZIP do Windows, o `.love` e o arquivo `SHA256SUMS`.
+Para reutilizar os arquivos oficiais que já estão baixados, aponte `ALCKMIN_BUILD_TOOLS` para a pasta que os contém.
+
+O ranking é salvo em `ranking-v1.tsv` na pasta de dados do jogo.
+No Linux, o caminho padrão é `~/.local/share/love/the-alckmin-deadi/` ao executar com `love .` ou com o arquivo `.love`.
+No Windows, é `%APPDATA%\LOVE\the-alckmin-deadi\` nessas mesmas modalidades.
+Nos executáveis empacotados, a pasta `the-alckmin-deadi` fica diretamente no diretório de dados do usuário.
+
+### Executar os testes
+
+Execute `bash tests/regressao.sh` com LÖVE 11.5 instalado. Em Linux sem sessão gráfica,
+execute `SDL_VIDEODRIVER=offscreen ALSOFT_DRIVERS=null bash tests/regressao.sh`.
+O teste usa uma pasta de dados temporária para o ranking.
 
 ---
 
@@ -100,7 +105,8 @@ projeto-final-tac1-jogos/
 ├── conf.lua                 # Configurações do LÖVE2D
 ├── main.lua                 # Arquivo principal do jogo
 ├── cenas/                   # Gerenciamento de cenas/fases
-│   ├── jogo.lua            # Lógica principal do jogo
+│   ├── jogo.lua            # Progressão, pausa e cronômetro
+│   ├── fase.lua            # Simulação compartilhada das fases
 │   ├── fase1.lua           # Primeira fase
 │   ├── fase2.lua           # Segunda fase
 │   └── fase3.lua           # Terceira fase
@@ -123,7 +129,7 @@ projeto-final-tac1-jogos/
 │   ├── fonts/             # Fontes customizadas
 │   ├── hud/               # Elementos de interface
 │   └── misc/              # Outros recursos
-└── executavel/            # Executável do jogo
+└── executavel/            # Script de empacotamento
 ```
 
 ---
@@ -150,7 +156,6 @@ O projeto aborda os seguintes tópicos da disciplina:
 - ✅ **Inteligência Artificial** para inimigos
 - ✅ **Sistema de Câmera** que segue o jogador
 - ✅ **Gerenciamento de Recursos** (imagens, sons, fontes)
-- ✅ **Sistema de Partículas** e efeitos visuais
 - ✅ **Persistência de Dados** (ranking de jogadores)
 
 ---

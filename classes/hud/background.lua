@@ -1,7 +1,7 @@
 Background = Classe:extend()
 
 function Background:new(nome_mapa)
-    self.img = love.graphics.newImage("materials/background/" .. nome_mapa .. ".png")
+    self.img = Recursos.imagem("materials/background/" .. nome_mapa .. ".png")
     self.larg = self.img:getWidth()
     self.alt = self.img:getHeight()
     self.x = 0

@@ -20,22 +20,20 @@ function Pause:new()
     self.x = (LARGURA_TELA - self.larg) / 2
     self.y = (ALTURA_TELA - self.alt) / 2
 
-    tempo_mouse = 0
-
-    font = love.graphics.setNewFont("materials/fonts/Melted-Monster.ttf", 40)
+    font = Recursos.usarFonte("materials/fonts/Melted-Monster.ttf", 40)
     botoes = {}
 
     table.insert(botoes, newButton(
         "Continuar",
         function()
-            estado_pause = "false"
+            jogo:alternarPausa()
         end
     ))
 
     table.insert(botoes, newButton(
         "Sair",
         function()
-            cena_atual = "menu_inicial"
+            jogo:voltar()
         end
     ))
 
@@ -45,9 +43,14 @@ function Pause:update(dt)
     
 end
 
+function Pause:ativar()
+    local pressionado = love.mouse.isDown(1)
+    for _, botao in ipairs(botoes) do botao.now = pressionado end
+end
+
 function Pause:draw()
     -- DESENHA QUADRO DO MENU DE PAUSE
-    if estado_pause == "true" then
+    if jogo.pausado then
         love.graphics.setColor(0, 0, 0, 0.8)
         love.graphics.rectangle("fill", 0, 0, LARGURA_TELA, ALTURA_TELA)
         love.graphics.setColor(0.3, 0, 0.5, 1)

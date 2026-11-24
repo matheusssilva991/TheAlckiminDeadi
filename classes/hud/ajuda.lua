@@ -52,11 +52,11 @@ function Ajuda:new()
     ))
 
     table.insert(botoes, newButton(
-        "BEM",
+        "MOUSE",
         function()
             
         end,
-        " =   ATIRAR"
+        " =   CLIQUE ESQUERDO PARA ATIRAR QUANDO PARADA"
     ))
 
     table.insert(botoes, newButton(
@@ -66,6 +66,8 @@ function Ajuda:new()
         end,
         " =   PAUSAR"
     ))
+
+    table.insert(botoes, newButton("ESPAÇO", function() end, " =   PULAR A INTRODUÇÃO"))
 
     table.insert(botoes2, newButton(
         "Voltar",
@@ -114,9 +116,8 @@ function Ajuda:draw()
             margem = 0
         elseif botao.text == "ESC" then
             larg_botao = 100
-            margem = 80
-        elseif botao.text == "BEM" then
-            larg_botao = 100
+        elseif botao.text == "MOUSE" or botao.text == "ESPAÇO" then
+            larg_botao = 140
         else
             larg_botao = 50
         end
@@ -173,13 +174,13 @@ function Ajuda:draw()
             by + textAlt * 0.25
         )
 
-        local font = love.graphics.setNewFont(25)
-        local ty = font:getHeight()
+        local fonte_ajuda = Recursos.usarFonte(20)
+        local ty = fonte_ajuda:getHeight()
         love.graphics.setColor(0, 0, 0)
         love.graphics.print(botao.ajuda_text, bx + larg_botao + 20, by + (ALTURA_BOTAO - ty) * 0.5 - 5)
         love.graphics.setColor(1, 1, 1)
         love.graphics.print(botao.ajuda_text, bx + larg_botao + 20 + 2, by + (ALTURA_BOTAO - ty) * 0.5 + - 3)
-        local font = love.graphics.setNewFont("materials/fonts/Melted-Monster.ttf", 40)
+        local font = Recursos.usarFonte("materials/fonts/Melted-Monster.ttf", 40)
 
         cursor_y = cursor_y + (ALTURA_BOTAO + margem)
     end

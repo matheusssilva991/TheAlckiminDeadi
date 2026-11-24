@@ -1,218 +1,94 @@
---[[
-    Classe Boss - Chefe de Fase
-    Representa os boss de cada fase
-    Possui ataques especiais, padrões de movimento e múltiplos estados
-]]--
-
 Boss = Classe:extend()
 
---[[
-    Construtor da classe Boss
-    @param nome_inimigo: Nome do arquivo de sprite
-    @param tipo_boss: Tabela com atributos do boss (vida, dano, velocidade, etc)
-]]--
-function Boss:new(nome_inimigo, tipo_boss)
-    self.nome = 'boss'
+local ESQUERDA, DIREITA = 1675, 2325
+local MIN_Y, MAX_Y = 300, 450
 
-    -- SPRITE E ANIMAÇÕES
-    self.img = love.graphics.newImage("/materials/chars/" .. nome_inimigo .. ".png")
-    self.largura_animacao = self.img:getWidth()
-    self.altura_animacao = self.img:getHeight()
-    self.largura = 100
-    self.altura = 100
-
-    local g_inimigos = anim.newGrid(self.largura, self.altura, self.largura_animacao, self.altura_animacao)
-    self.anim_boss = anim.newAnimation(g_inimigos('1-4', tipo_boss.op), 0.15)
-    self.anim_boss_parado = anim.newAnimation(g_inimigos('1-1', tipo_boss.op), 0.15)
-
-    -- ATRIBUTOS DE COMBATE
-    self.posicao = tipo_boss.posicao            -- Posição inicial
-    self.dano = tipo_boss.dano                  -- Dano corpo a corpo
-    self.dano_tiro = tipo_boss.dano_tiro        -- Dano dos projéteis
-    self.vida = tipo_boss.vida                  -- Pontos de vida
-    self.raio = tipo_boss.raio                  -- Raio de colisão
-    self.raio_deteccao = tipo_boss.raio_deteccao -- Alcance de detecção
-    self.vel = tipo_boss.vel                    -- Velocidade de movimento
-    self.vel_tiro = tipo_boss.vel_tiro          -- Velocidade dos projéteis
-
-    -- ESTADOS DO BOSS
-    self.estado_mov = 'descendo'                -- Estado de movimento (descendo/subindo)
-    self.estado_ataque = 'normal'               -- Modo de ataque (normal/tiro/avanco)
-    self.direcao_olhando = 'direita'            -- Direção que o boss está olhando
-
-    -- SISTEMA DE ATAQUES
-    self.delay_ataque_tiro = 0                  -- Cooldown entre ataques à distância
-    self.delay_ataque_avanco = 0                -- Cooldown para ataque de avanço
-    self.tempo_ataque = 2.25                    -- Timer para alternar modos de ataque
-    self.tiros = {}                             -- Array de projéteis ativos
-    self.posicao_heroi = heroi.posicao          -- Posição alvo do herói
-    self.delay_dano = 0                         -- Cooldown de dano corpo a corpo
-    self.heroi_visivel = false                  -- Se o herói foi detectado
+function Boss:new(tipo)
+    self.img = Recursos.imagem('materials/chars/inimigos.png')
+    local grade = anim.newGrid(100, 100, self.img:getWidth(), self.img:getHeight())
+    self.andando = anim.newAnimation(grade('1-4', 2), 0.15)
+    self.parado = anim.newAnimation(grade(1, 2), 0.15)
+    self.posicao = Vector(DIREITA, 350)
+    self.chao = self.posicao.y + 56
+    self.raio = 70
+    self.vida = tipo.vida
+    self.vida_max = tipo.vida
+    self.dano = tipo.dano
+    self.vel = tipo.vel
+    self.vel_tiro = tipo.vel_tiro
+    self.intervalo_tiro = tipo.intervalo_tiro
+    self.aviso = tipo.aviso
+    self.estado = 'normal'
+    self.lado_avanco = -1
+    self.direcao = -1
+    self.ciclo = 2.25
+    self.tempo_ate_avanco = 12
+    self.tempo_ate_tiro = 0
 end
 
---[[
-    Atualiza o estado e comportamento do boss
-    Gerencia padrões de ataque e movimento
-    @param dt: Delta time
-]]--
-function Boss:update(dt)
-    self.anim_boss:update(dt)
-    self.anim_boss_parado:update(dt)
-
-    -- SISTEMA DE DETECÇÃO - Herói detectado por tiro ou visão
-    local escutou_tomou_tiro = verifica_colisao(heroi.posicao, heroi.raio_tiro, self.posicao, self.raio_deteccao)
-    local viu_heroi = verifica_colisao(heroi.posicao, heroi.raio, self.posicao, self.raio_deteccao)
-    if (heroi.atirando and escutou_tomou_tiro and heroi.posicao.x > 1600) or viu_heroi then
-        if not self.heroi_visivel then
-            self.direcao_olhando = 'esquerda'
-        end
-        self.heroi_visivel = true
-    end
-
-    -- SISTEMA DE COOLDOWNS - Atualiza timers apenas quando herói está visível
-    if self.heroi_visivel then
-        self.delay_ataque_avanco = self.delay_ataque_avanco + dt
-        self.delay_ataque_tiro = self.delay_ataque_tiro + dt
-        self.tempo_ataque = self.tempo_ataque + dt
-    end
-
-    -- Tempo para dar dano novamente no heroi
-    if heroi.estado == 'colidindo' then
-        self.delay_dano = self.delay_dano + dt
-    elseif heroi.estado ~= 'colidindo' then
-        self.delay_dano = 0
-    end
-
-    -- Verifica se já terminou o tempo de recarga do ataque de avanco
-    if self.delay_ataque_avanco >= 12 and self.delay_ataque_avanco <= 13 then
-        self.estado_ataque = 'carregar avanco'
-        self.posicao_heroi = heroi.posicao
-    elseif self.estado_ataque == 'carregar avanco' and self.delay_ataque_avanco > 14 then
-        self.estado_ataque = 'avanco'
-        self.tempo_ataque = 0
-    end
-
-    -- Alterna entre os estados de ataque tiro e normal caso avanço esteja em cd
-    if 3.0 <= self.tempo_ataque and self.tempo_ataque < 5.00 and self.delay_ataque_avanco < 10 then
-        self.estado_ataque = 'tiro'
-    elseif self.tempo_ataque >= 5.00 and self.delay_ataque_avanco < 10 then
-        self.estado_ataque = 'normal'
-        self.tempo_ataque = 0
-    end
-
-    -- Verifica se está no modo de ataque tiro
-    if self.delay_ataque_tiro >= 0.45 and self.estado_ataque == 'tiro' then
-        if self.posicao.x >= heroi.posicao.x then
-            table.insert(self.tiros, Tiro(self.posicao.x, self.posicao.y, 'esquerda', 40, 'boss', self.dano_tiro, self.vel_tiro))
+function Boss:update(dt, heroi)
+    self.posicao_anterior = self.posicao
+    self.andando:update(dt)
+    if self.estado == 'avanco' then
+        local restante = self.destino - self.posicao
+        local passo = self.vel * dt
+        if restante:magSq() <= passo * passo then
+            self.posicao = self.destino
+            self.estado = 'normal'
+            self.lado_avanco = -self.lado_avanco
+            self.tempo_ate_avanco = 12
+            self.ciclo = 0
         else
-            table.insert(self.tiros, Tiro(self.posicao.x, self.posicao.y, 'direita', 40, 'boss', self.dano_tiro, self.vel_tiro))
+            self.posicao = self.posicao + restante:norm() * passo
         end
-        self.delay_ataque_tiro = 0
-    end
+    elseif self.estado == 'aviso' then
+        self.tempo_aviso = self.tempo_aviso - dt
+        if self.tempo_aviso <= 0 then self.estado = 'avanco' end
+    else
+        self.direcao = heroi.posicao.x >= self.posicao.x and 1 or -1
+        self.ciclo = (self.ciclo + dt) % 5
+        self.tempo_ate_avanco = self.tempo_ate_avanco - dt
+        self.tempo_ate_tiro = math.max(0, self.tempo_ate_tiro - dt)
 
-    -- Atualiza os tiros e verifica se está colidindo com o heroi
-    for i = #self.tiros, 1, -1 do
-        self.tiros[i]:update(dt)
-
-        if verifica_colisao(heroi.posicao, heroi.raio, self.tiros[i].posicao, self.tiros[i].raio) then
-            heroi.vida = math.max(heroi.vida - self.tiros[i].dano, 0)
-            table.remove(self.tiros, i)
-        end
-    end
-
-    -- Verifica se o heroi está subindo ou descendo se estiver no estado_ataque tiro
-    if self.estado_ataque == 'normal' or self.estado_ataque == 'tiro' then
-        if self.posicao.y > heroi.posicao.y then
-            self.estado_mov = 'subindo'
-        elseif self.posicao.y <= heroi.posicao.y then
-            self.estado_mov = 'descendo'
-        end
-    elseif self.estado_ataque == 'carregar avanco' then
-        if self.posicao.y > self.posicao_heroi.y then
-            self.estado_mov = 'subindo'
-        elseif self.posicao.y <= self.posicao_heroi.y then
-            self.estado_mov = 'descendo'
-        end
-    end
-
-    -- Atualiza a posição do heroi de acordo com o estado
-    if self.estado_mov == 'descendo' and self.estado_ataque == 'tiro' then
-        self.posicao = self.posicao + Vector(0, 0.80)
-    elseif self.estado_mov == 'subindo' and self.estado_ataque == 'tiro' then
-        self.posicao = self.posicao - Vector(0, 0.80)
-    elseif self.estado_mov == 'descendo' and self.estado_ataque == 'avanco' then
-        if self.direcao_olhando == 'direita' then
-            self.posicao = self.posicao + Vector(self.vel, math.abs(self.posicao_heroi.y - self.posicao.y)) * dt
-        elseif self.direcao_olhando == 'esquerda' then
-            self.posicao = self.posicao - Vector(self.vel, -math.abs(self.posicao_heroi.y - self.posicao.y)) * dt
-        end
-    elseif self.estado_mov == 'subindo' and self.estado_ataque == 'avanco' then
-        if self.direcao_olhando == 'direita' then
-            self.posicao = self.posicao + Vector(self.vel, -math.abs(self.posicao_heroi.y - self.posicao.y)) * dt
-        elseif self.direcao_olhando == 'esquerda' then
-            self.posicao = self.posicao - Vector(self.vel, math.abs(self.posicao_heroi.y - self.posicao.y)) * dt
+        if self.tempo_ate_avanco <= 0 then
+            self.estado = 'aviso'
+            self.tempo_aviso = self.aviso
+            self.direcao = self.lado_avanco
+            self.origem_avanco = self.posicao
+            self.destino = Vector(self.lado_avanco < 0 and ESQUERDA or DIREITA,
+                math.max(MIN_Y, math.min(MAX_Y, heroi.posicao.y)))
+        elseif self.ciclo >= 3 and self.tempo_ate_avanco > 2 then
+            local alvo_y = math.max(MIN_Y, math.min(MAX_Y, heroi.posicao.y))
+            local dy = math.max(-48 * dt, math.min(48 * dt, alvo_y - self.posicao.y))
+            self.posicao = self.posicao + Vector(0, dy)
+            self.chao = self.posicao.y + 56
+            if self.tempo_ate_tiro == 0 then
+                self.tempo_ate_tiro = self.intervalo_tiro
+                local direcao = heroi.posicao - self.posicao
+                if direcao:magSq() == 0 then direcao = Vector(self.direcao, 0) end
+                return Tiro(self.posicao, direcao:norm(), self.vel_tiro, 1000, 40, self.dano, true)
+            end
         end
     end
+    self.chao = self.posicao.y + 56
+end
 
-    -- Verifica se terminou o avanço
-    if self.posicao.x <= 1675 and self.estado_ataque == 'avanco' and self.direcao_olhando == 'esquerda' then
-        self.estado_ataque = 'normal'
-        self.direcao_olhando = 'direita'
-        self.delay_ataque_avanco = 0
-        self.delay_ataque_tiro = 0
-    elseif self.posicao.x >= 2325 and self.estado_ataque == 'avanco' and self.direcao_olhando == 'direita' then
-        self.estado_ataque = 'normal'
-        self.direcao_olhando = 'esquerda'
-        self.delay_ataque_avanco = 0
-        self.delay_ataque_tiro = 0
-    end
+function Boss:receberDano(dano)
+    self.vida = math.max(0, self.vida - dano)
 end
 
 function Boss:draw()
-    --[[ for i = #self.tiros, 1, -1 do
-        self.tiros[i]:draw()
-    end ]]
+    local quadro = self.estado == 'aviso' and self.parado or self.andando
+    quadro:draw(self.img, self.posicao.x - 75 * self.direcao, self.posicao.y - 75,
+        0, 1.5 * self.direcao, 1.5)
+end
 
-    local escala = 1.5
-    love.graphics.push()
-    love.graphics.scale(escala, escala)
-
-    -- Linha de ataque avanço frontal
-    if self.estado_ataque == 'carregar avanco' or self.estado_ataque == 'avanco' then
-        love.graphics.setColor(1, 0, 0, 0.20)
-        love.graphics.setLineWidth(100)
-
-        if self.direcao_olhando == 'esquerda' then -- Boss está olhando pra esquerda
-            love.graphics.line(self.posicao.x/escala + 40, self.posicao.y/escala, 1600/escala, self.posicao_heroi.y/escala)
-        elseif self.direcao_olhando == 'direita' then -- Boss olhando para direita
-            love.graphics.line(self.posicao.x/escala - 40, self.posicao.y/escala, 2400/escala, self.posicao_heroi.y/escala)
-        end
-
+function Boss:drawAviso()
+    if self.estado == 'aviso' or self.estado == 'avanco' then
+        love.graphics.setColor(1, 0, 0, 0.25)
+        love.graphics.setLineWidth(2 * self.raio)
+        love.graphics.line(self.origem_avanco.x, self.origem_avanco.y, self.destino.x, self.destino.y)
         love.graphics.setLineWidth(1)
         love.graphics.setColor(1, 1, 1)
-    end
-
-    -- Desenha o Boss
-    if self.direcao_olhando == 'direita' then
-        if self.estado_ataque == 'carregar avanco' then
-            self.anim_boss_parado:draw(self.img, self.posicao.x/escala - self.largura/2*escala + 25, self.posicao.y/escala - self.altura/2*escala + 25, 0, 1, 1)
-        else
-            self.anim_boss:draw(self.img, self.posicao.x/escala - self.largura/2*escala + 25, self.posicao.y/escala - self.altura/2*escala + 25, 0, 1, 1)
-        end
-        love.graphics.circle("line", self.posicao.x/escala, self.posicao.y/escala, self.raio/escala)
-        love.graphics.circle("line", self.posicao.x/escala, self.posicao.y/escala, self.raio_deteccao/escala)
-    elseif self.direcao_olhando == 'esquerda' then
-        if self.estado_ataque == 'carregar avanco'then
-            self.anim_boss_parado:draw(self.img, self.posicao.x/escala + self.largura/2*escala - 25, self.posicao.y/escala - self.altura/2*escala + 25, 0, -1, 1)
-        else
-            self.anim_boss:draw(self.img, self.posicao.x/escala + self.largura/2*escala - 25, self.posicao.y/escala - self.altura/2*escala + 25, 0, -1, 1)
-        end
-        love.graphics.circle("line", self.posicao.x/escala, self.posicao.y/escala, self.raio_deteccao/escala)
-        love.graphics.circle("line", self.posicao.x/escala, self.posicao.y/escala, self.raio/escala)
-    end
-    love.graphics.pop()
-
-    for i = #self.tiros, 1, -1 do
-        self.tiros[i]:draw()
     end
 end

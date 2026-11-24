@@ -16,7 +16,7 @@ local botoes = {}
 local font = nil
 
 function Ranking:new()
-    font = love.graphics.setNewFont("materials/fonts/Melted-Monster.ttf", 40)
+    font = Recursos.usarFonte("materials/fonts/Melted-Monster.ttf", 40)
 
     table.insert(botoes, newButton(
         "Voltar",
@@ -27,20 +27,18 @@ function Ranking:new()
 end
 
 function Ranking:update(dt)
-    sort_ranking(tabela_ranking)
 end
 
 function Ranking:draw()
-    local ranking_y = 20
-    local ranking_alt = font:getHeight()
+    love.graphics.printf('Ranking', 0, 20, LARGURA_TELA, 'center')
+    local fonte_placar = Recursos.fonte(27)
+    if #tabela_ranking == 0 then
+        love.graphics.printf('Nenhuma campanha concluída.', fonte_placar, 0, 90, LARGURA_TELA, 'center')
+    end
 
-    for i, rank in ipairs(tabela_ranking) do
-        love.graphics.setColor(0, 0, 0)
-        love.graphics.print(tabela_ranking[i].nome .. " : " .. tabela_ranking[i].tempo_jogo, 10, ranking_y)
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.print(tabela_ranking[i].nome .. " : " .. tabela_ranking[i].tempo_jogo, 11, ranking_y + 1)
-
-        ranking_y = ranking_y + ranking_alt * 2
+    for i, registro in ipairs(tabela_ranking) do
+        local linha = string.format('%d.   Jogador %d   %.2f s', i, registro.id, registro.milissegundos / 1000)
+        love.graphics.printf(linha, fonte_placar, 0, 76 + (i - 1) * 41, LARGURA_TELA, 'center')
     end
 
     local larg_botao = 150

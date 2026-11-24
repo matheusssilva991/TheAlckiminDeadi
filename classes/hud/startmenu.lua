@@ -34,7 +34,7 @@ local botoes = {}
 ]]--
 function Start:new()
     -- Carrega e configura o fundo animado
-    self.img_fundo = love.graphics.newImage("materials/background/fundo_menu.png")
+    self.img_fundo = Recursos.imagem("materials/background/fundo_menu.png")
     self.larg_img = self.img_fundo:getWidth()
     self.alt_img = self.img_fundo:getHeight()
     self.larg_frame = self.larg_img/3               -- Divide em 3 frames de animação
@@ -43,15 +43,14 @@ function Start:new()
     self.animation = anim.newAnimation(grid('1-3', 1), 0.1)
 
     -- Configura a fonte padrão do menu
-    font = love.graphics.setNewFont("materials/fonts/Melted-Monster.ttf", 40)
+    font = Recursos.usarFonte("materials/fonts/Melted-Monster.ttf", 40)
     botoes = {}
 
     -- Cria botão "Jogar" - Inicia o jogo
     table.insert(botoes, newButton(
         "Jogar",
         function()
-            cena_atual = "jogo"
-            jogo:new()
+            jogo:iniciar()
         end
     ))
 
@@ -97,12 +96,12 @@ function Start:draw()
     self.animation:draw(self.img_fundo, 0, 0)
 
     -- Desenha o título do jogo com efeito de sombra
-    font = love.graphics.setNewFont("materials/fonts/Dead-Kansas.ttf", 50)
+    font = Recursos.usarFonte("materials/fonts/Dead-Kansas.ttf", 50)
     love.graphics.setColor(0, 0, 0)                 -- Sombra preta
     love.graphics.printf("THE ALCKMIN DEADI", 0, 40, 800, "center")
     love.graphics.setColor(1, 1, 1, 0.2)            -- Texto semi-transparente
     love.graphics.printf("THE ALCKMIN DEADI", 0, 40, 800, "center")
-    font = love.graphics.setNewFont("materials/fonts/Melted-Monster.ttf", 40)
+    font = Recursos.usarFonte("materials/fonts/Melted-Monster.ttf", 40)
 
     -- Configurações de layout dos botões
     local larg_botao = 250
